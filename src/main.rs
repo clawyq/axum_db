@@ -1,6 +1,8 @@
 use std::{fmt, env};
 use axum_db::run;
 
+mod routes;
+
 #[derive(PartialEq)]
 enum AppEnv {
     Dev,
@@ -18,6 +20,14 @@ impl fmt::Display for AppEnv {
 
 #[tokio::main]
 async fn main() {
+    let db_conn_str = get_db_conn_str();
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    run(&db_conn_str[..]).await;
+    // axum::serve(listener, app).await.unwrap();
+}
+
+fn get_db_conn_str() -> String {
     let app_env = match env::var("APP_ENV") {
         Ok(v) if v == "prod" => AppEnv::Prod,
         _ => AppEnv::Dev,
@@ -31,7 +41,5 @@ async fn main() {
             Err(e) => println!("Could not load .env file: {e}"),
         };
     }
-
-    let db_conn_str = env::var("DATABASE_URL").expect("DB connection string not set");
-    run(&db_conn_str[..]).await;
+    env::var("DATABASE_URL").expect("DB connection string not set")
 }
