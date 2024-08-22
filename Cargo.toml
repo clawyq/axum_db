@@ -1,0 +1,11 @@
+[package]
+name = "axum_db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.5"
+dotenvy = "0.15.7"
+dotenvy_macro = "0.15.7"
+sea-orm = { version = "1.0.0", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+tokio = { version = "1.39.3", features = ["full"] }
