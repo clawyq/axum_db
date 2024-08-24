@@ -1,7 +1,9 @@
-use std::{fmt, env};
-use axum_db::run;
-
+mod database;
 mod routes;
+
+use axum_db::connect_to_db;
+use routes::create_routes;
+use std::{env, fmt};
 
 #[derive(PartialEq)]
 enum AppEnv {
@@ -23,8 +25,16 @@ async fn main() {
     let db_conn_str = get_db_conn_str();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    run(&db_conn_str[..]).await;
-    // axum::serve(listener, app).await.unwrap();
+    let connection = match connect_to_db(&db_conn_str[..]).await {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to connect to database: {e}");
+            return;
+        }
+    };
+    axum::serve(listener, create_routes(connection).await)
+        .await
+        .unwrap();
 }
 
 fn get_db_conn_str() -> String {
