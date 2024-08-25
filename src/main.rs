@@ -1,5 +1,6 @@
 mod database;
 mod routes;
+mod utils;
 
 use axum_db::connect_to_db;
 use routes::create_routes;
