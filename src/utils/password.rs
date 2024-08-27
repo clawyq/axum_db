@@ -5,22 +5,38 @@ use validator::ValidationError;
 
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     if password.len() < 8 {
-        return Err(ValidationError::new("length").with_message(std::borrow::Cow::Borrowed("Password needs to be at least 8 characters long.")));
+        return Err(
+            ValidationError::new("length").with_message(std::borrow::Cow::Borrowed(
+                "Password needs to be at least 8 characters long.",
+            )),
+        );
     }
 
     let special_char = Regex::new(r##"[!@#$%^&*(),.?:{}|<>]"##).unwrap();
     if !special_char.is_match(password) {
-        return Err(ValidationError::new("special").with_message(std::borrow::Cow::Borrowed("Password must contain at least one special character.")));
+        return Err(
+            ValidationError::new("special").with_message(std::borrow::Cow::Borrowed(
+                "Password must contain at least one special character.",
+            )),
+        );
     };
 
     let numbers = Regex::new(r"\d").unwrap();
     if !numbers.is_match(password) {
-        return Err(ValidationError::new("number").with_message(std::borrow::Cow::Borrowed("Password must contain at least one number.")));
+        return Err(
+            ValidationError::new("number").with_message(std::borrow::Cow::Borrowed(
+                "Password must contain at least one number.",
+            )),
+        );
     };
 
     let uppercase = Regex::new(r"[A-Z]").unwrap();
     if !uppercase.is_match(password) {
-        return Err(ValidationError::new("case").with_message(std::borrow::Cow::Borrowed("Password must contain at least one uppercase character.")));
+        return Err(
+            ValidationError::new("case").with_message(std::borrow::Cow::Borrowed(
+                "Password must contain at least one uppercase character.",
+            )),
+        );
     };
 
     Ok(())
