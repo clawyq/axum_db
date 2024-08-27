@@ -3,6 +3,8 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use regex::Regex;
 use validator::ValidationError;
 
+use super::app_error::AppError;
+
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     if password.len() < 8 {
         return Err(
@@ -42,10 +44,10 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-pub fn hash_password(password: String) -> Result<String, (StatusCode, String)> {
-    hash(password, DEFAULT_COST).map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+pub fn hash_password(password: String) -> Result<String, AppError> {
+    hash(password, DEFAULT_COST).map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
 }
 
-pub fn verify_password(password: String, hash: &str) -> Result<bool, (StatusCode, String)> {
-    verify(password, hash).map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+pub fn verify_password(password: String, hash: &str) -> Result<bool, AppError> {
+    verify(password, hash).map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
 }
