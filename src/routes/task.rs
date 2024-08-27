@@ -4,6 +4,10 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, Json,
 };
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use chrono::{DateTime, FixedOffset};
 use sea_orm::{
     prelude::DateTimeWithTimeZone, ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection,
@@ -11,7 +15,10 @@ use sea_orm::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::database::tasks::{self, Entity as Tasks};
+use crate::database::{
+    tasks::{self, Entity as Tasks},
+    users::{self, Entity as Users},
+};
 
 #[derive(Deserialize)]
 pub struct TaskRequest {
@@ -32,6 +39,7 @@ pub struct TaskResponse {
     description: Option<String>,
     priority: Option<String>,
     deleted_at: Option<DateTime<FixedOffset>>,
+    user_id: Option<i32>,
 }
 
 impl IntoResponse for TaskResponse {
@@ -53,8 +61,21 @@ pub struct DeleteParams {
 
 pub async fn create_task(
     Extension(database): Extension<DatabaseConnection>,
+    authorisation: TypedHeader<Authorization<Bearer>>,
     Json(req): Json<TaskRequest>,
 ) -> Result<(StatusCode, TaskResponse), (StatusCode, String)> {
+    let token = authorisation.token();
+    let user = if let Some(user) = Users::find()
+        .filter(users::Column::Token.eq(token))
+        .one(&database)
+        .await
+        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?
+    {
+        user
+    } else {
+        return Err((StatusCode::UNAUTHORIZED, "Action not allowed.".to_owned()));
+    };
+
     if let None = req.title {
         return Err((StatusCode::BAD_REQUEST, "Title is required.".to_owned()));
     }
@@ -63,6 +84,7 @@ pub async fn create_task(
         title: Set(req.title.unwrap()),
         description: Set(req.description),
         priority: Set(req.priority),
+        user_id: Set(Some(user.id)),
         ..Default::default()
     };
 
@@ -75,6 +97,7 @@ pub async fn create_task(
                 description: saved_task.description.unwrap(),
                 priority: saved_task.priority.unwrap(),
                 deleted_at: saved_task.deleted_at.unwrap(),
+                user_id: Some(user.id),
             },
         )),
         Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
@@ -102,6 +125,7 @@ pub async fn get_all_tasks(
             description: task.description,
             priority: task.priority,
             deleted_at: task.deleted_at,
+            user_id: task.user_id,
         })
         .collect();
     Ok(Json(tasks))
@@ -127,6 +151,7 @@ pub async fn get_task(
             description: task.description,
             priority: task.priority,
             deleted_at: task.deleted_at,
+            user_id: task.user_id,
         }),
         None => Err(StatusCode::NOT_FOUND),
     }
