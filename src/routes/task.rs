@@ -1,8 +1,8 @@
 use axum::{
-    extract::{Path, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Extension, Json,
+    Json,
 };
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
@@ -60,7 +60,7 @@ pub struct DeleteParams {
 }
 
 pub async fn create_task(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     authorisation: TypedHeader<Authorization<Bearer>>,
     Json(req): Json<TaskRequest>,
 ) -> Result<(StatusCode, TaskResponse), (StatusCode, String)> {
@@ -109,7 +109,7 @@ pub async fn create_task(
  * map_err here to show diff (more idiomatic) way of err handling
  */
 pub async fn get_all_tasks(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Query(query_params): Query<TaskQueryParams>,
 ) -> Result<Json<Vec<TaskResponse>>, StatusCode> {
     let conditions = parse_query_params_into_conditions(query_params);
@@ -133,7 +133,7 @@ pub async fn get_all_tasks(
 
 pub async fn get_task(
     Path(task_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
 ) -> Result<TaskResponse, StatusCode> {
     let db_req = Tasks::find_by_id(task_id)
         .filter(tasks::Column::DeletedAt.is_null())
@@ -159,7 +159,7 @@ pub async fn get_task(
 
 pub async fn atomic_task_update(
     Path(task_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(req): Json<TaskRequest>,
 ) -> Result<(), (StatusCode, String)> {
     if let None = req.title {
@@ -187,7 +187,7 @@ pub async fn atomic_task_update(
 
 pub async fn partial_task_update(
     Path(task_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(req): Json<TaskRequest>,
 ) -> Result<(), (StatusCode, String)> {
     let mut task = if let Some(task) = Tasks::find_by_id(task_id)
@@ -221,7 +221,7 @@ pub async fn partial_task_update(
 
 pub async fn delete_task(
     Path(task_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Query(query_params): Query<DeleteParams>,
 ) -> Result<(), (StatusCode, String)> {
     if let Some(soft) = query_params.soft {

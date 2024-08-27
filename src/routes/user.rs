@@ -1,3 +1,4 @@
+use axum::extract::State;
 use axum::{http::StatusCode, Extension, Json};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
@@ -27,7 +28,7 @@ pub struct UserRequest {
 }
 
 pub async fn create_user(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(user_req): Json<UserRequest>,
 ) -> Result<Json<UserResponse>, AppError> {
     if let Err(err) = user_req.validate() {
@@ -51,7 +52,7 @@ pub async fn create_user(
 }
 
 pub async fn get_all_users(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
 ) -> Result<Json<Vec<UserResponse>>, AppError> {
     let user_req = Users::find()
         .all(&database)
@@ -68,7 +69,7 @@ pub async fn get_all_users(
 }
 
 pub async fn login(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(user_req): Json<UserRequest>,
 ) -> Result<Json<UserResponse>, AppError> {
     if user_req.username.is_empty() || user_req.password.is_empty() {
@@ -105,7 +106,7 @@ pub async fn login(
 }
 
 pub async fn logout(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Extension(user): Extension<Model>,
 ) -> Result<(), AppError> {
     let mut user = user.into_active_model();
