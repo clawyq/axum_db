@@ -4,7 +4,10 @@ mod task;
 mod user;
 
 use axum::{
-    extract::FromRef, middleware, routing::{get, post}, Router
+    extract::FromRef,
+    middleware,
+    routing::{get, post},
+    Router,
 };
 
 use guard::check_authentication;
@@ -17,7 +20,7 @@ use user::{create_user, get_all_users, login, logout};
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
-    pub database: DatabaseConnection
+    pub database: DatabaseConnection,
 }
 
 pub async fn create_routes(database: DatabaseConnection) -> Router {
@@ -25,7 +28,10 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
     Router::new()
         .route("/health", get(heartbeat))
         .route("/logout", post(logout))
-        .route_layer(middleware::from_fn_with_state(app_state.clone(), check_authentication))
+        .route_layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            check_authentication,
+        ))
         .route("/login", post(login))
         .route("/users", get(get_all_users).post(create_user))
         .route("/tasks", get(get_all_tasks).post(create_task))

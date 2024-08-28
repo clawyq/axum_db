@@ -5,6 +5,7 @@ mod utils;
 use axum_db::connect_to_db;
 use routes::create_routes;
 use std::{env, fmt};
+use tracing_subscriber;
 
 #[derive(PartialEq)]
 enum AppEnv {
@@ -23,6 +24,7 @@ impl fmt::Display for AppEnv {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
     let db_conn_str = get_db_conn_str();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

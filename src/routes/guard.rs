@@ -8,7 +8,10 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use axum_extra::{headers::{authorization::Bearer, Authorization}, TypedHeader};
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
 pub async fn check_authentication(

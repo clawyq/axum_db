@@ -5,6 +5,7 @@ use sea_orm::{
     Set,
 };
 use serde::{Deserialize, Serialize};
+use tracing::{info, instrument};
 use validator::Validate;
 
 use crate::database::users::{self, Entity as Users, Model};
@@ -12,14 +13,14 @@ use crate::utils::app_error::AppError;
 use crate::utils::jwt::create_jwt;
 use crate::utils::password::{hash_password, validate_password, verify_password};
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct UserResponse {
     id: i32,
     username: String,
     token: Option<String>,
 }
 
-#[derive(Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct UserRequest {
     #[validate(email)]
     username: String,
@@ -27,6 +28,7 @@ pub struct UserRequest {
     password: String,
 }
 
+#[instrument(skip(database))]
 pub async fn create_user(
     State(database): State<DatabaseConnection>,
     Json(user_req): Json<UserRequest>,
@@ -44,17 +46,20 @@ pub async fn create_user(
     .save(&database)
     .await
     .map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
-    Ok(Json(UserResponse {
+    let response = UserResponse {
         id: user_model.id.unwrap(),
         username: user_model.username.unwrap(),
         token: user_model.token.unwrap(),
-    }))
+    };
+    info!("{:?}", response);
+    Ok(Json(response))
 }
 
+#[instrument]
 pub async fn get_all_users(
     State(database): State<DatabaseConnection>,
 ) -> Result<Json<Vec<UserResponse>>, AppError> {
-    let user_req = Users::find()
+    let users = Users::find()
         .all(&database)
         .await
         .map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?
@@ -65,9 +70,10 @@ pub async fn get_all_users(
             token: raw_user.token,
         })
         .collect();
-    Ok(Json(user_req))
+    Ok(Json(users))
 }
 
+#[instrument(skip(database))]
 pub async fn login(
     State(database): State<DatabaseConnection>,
     Json(user_req): Json<UserRequest>,
@@ -85,12 +91,18 @@ pub async fn login(
         .map_err(|error| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
 
     if let None = user {
-        return Err(AppError::new(StatusCode::NOT_FOUND, "Username not found.".to_owned()));
+        return Err(AppError::new(
+            StatusCode::NOT_FOUND,
+            "Username not found.".to_owned(),
+        ));
     }
 
     let user = user.unwrap();
     if !verify_password(user_req.password, &user.password[..])? {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, "Wrong credentials.".to_owned()));
+        return Err(AppError::new(
+            StatusCode::UNAUTHORIZED,
+            "Wrong credentials.".to_owned(),
+        ));
     }
     let mut user = user.into_active_model();
     user.token = Set(Some(create_jwt()?));
@@ -105,6 +117,7 @@ pub async fn login(
     }))
 }
 
+#[instrument(skip(database))]
 pub async fn logout(
     State(database): State<DatabaseConnection>,
     Extension(user): Extension<Model>,

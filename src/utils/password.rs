@@ -45,9 +45,11 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
 }
 
 pub fn hash_password(password: String) -> Result<String, AppError> {
-    hash(password, DEFAULT_COST).map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+    hash(password, DEFAULT_COST)
+        .map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
 }
 
 pub fn verify_password(password: String, hash: &str) -> Result<bool, AppError> {
-    verify(password, hash).map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+    verify(password, hash)
+        .map_err(|err| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
 }
